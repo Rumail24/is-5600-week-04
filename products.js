@@ -1,7 +1,8 @@
+// products.js
 const fs = require('fs').promises
 const path = require('path')
 
-const productsFile = path.join(__dirname, 'data', 'full-products.json')
+const productsFile = path.join(__dirname, 'data/full-products.json')
 
 module.exports = {
   list,
@@ -11,49 +12,69 @@ module.exports = {
   remove
 }
 
-async function readProducts () {
-  const data = await fs.readFile(productsFile, 'utf8')
-  return JSON.parse(data)
-}
-
+/**
+ * List all products
+ * @param {object} options
+ * @returns {Promise<Array>}
+ */
 async function list (options = {}) {
   const { offset = 0, limit = 25, tag } = options
-  let products = await readProducts()
+  const data = await fs.readFile(productsFile)
+  let products = JSON.parse(data)
 
+  // Filter by tag if provided
   if (tag) {
-    const normalizedTag = String(tag).toLowerCase()
-    products = products.filter(product =>
-      (product.tags || []).some(tagItem =>
-        String(tagItem.title || '').toLowerCase() === normalizedTag
-      )
-    )
+    products = products.filter(product => 
+  Array.isArray(product.tags) && product.tags.some(t => t.title === tag))
   }
 
   return products.slice(offset, offset + limit)
 }
 
+/**
+ * Get a single product
+ * @param {string} id
+ * @returns {Promise<object>}
+ */
 async function get (id) {
-  const products = await readProducts()
-  return products.find(product => product.id === id) || null
-}
+  const products = JSON.parse(await fs.readFile(productsFile))
 
-async function create (product) {
-  console.log('Creating product:', product)
-  return {
-    id: `new-${Date.now()}`,
-    ...product
+  for (let i = 0; i < products.length; i++) {
+    if (products[i].id === id) {
+      return products[i]
+    }
   }
+
+  return null
 }
 
-async function update (id, updates) {
-  console.log('Updating product:', id, updates)
-  return {
-    id,
-    ...updates
-  }
+/**
+ * Create a new product
+ * @param {object} data
+ * @returns {Promise<object>}
+ */
+async function create (data) {
+  console.log('create product:', data)
+  return data
 }
 
+/**
+ * Update a product
+ * @param {string} id
+ * @param {object} data
+ * @returns {Promise<object>}
+ */
+async function update (id, data) {
+  console.log('update product:', id, data)
+  return { id, ...data }
+}
+
+/**
+ * Delete a product
+ * @param {string} id
+ * @returns {Promise<object>}
+ */
 async function remove (id) {
-  console.log('Deleting product:', id)
-  return true
+  console.log('delete product:', id)
+  return { deleted: true }
 }
